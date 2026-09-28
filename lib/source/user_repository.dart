@@ -42,7 +42,7 @@ class UserRepository {
   List<DatabaseModel> _toUsers(Iterable<dynamic> rows) {
     final users = <DatabaseModel>[];
     for (final row in rows) {
-      final Map<String, String?> assoc = row.assoc();
+      final assoc = row.assoc() as Map<String, String?>;
       users.add(DatabaseModel.fromRowAssoc(assoc));
     }
     return users;
