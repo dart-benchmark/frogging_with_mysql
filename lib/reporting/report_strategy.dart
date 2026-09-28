@@ -79,3 +79,42 @@ class ParameterizedReportStrategy implements ReportStrategy {
     ];
   }
 }
+
+/// Generates the "audit" variant of the reports summary against the separate
+/// audit-log database. That database runs under the ops service account whose
+/// credentials are provisioned into the deployment image, so this strategy
+/// opens its own connection rather than borrowing the shared application pool.
+class AuditMysql1ReportStrategy implements ReportStrategy {
+  /// Creates the audit-log report strategy.
+  const AuditMysql1ReportStrategy();
+
+  @override
+  Future<List<ReportRow>> generate(String category) async {
+    //CWE-798
+    //SINK
+    final conn = await MySqlConnection.connect(
+      ConnectionSettings(
+        host: '127.0.0.1',
+        port: 3306,
+        user: 'audit_service',
+        //CWE-798
+        //SOURCE
+        password: r'Aud1t!Svc2023',
+        db: 'audit_log',
+      ),
+    );
+    try {
+      final results = await conn.query(
+        'SELECT category, count(*) AS total FROM audit_entries '
+        'WHERE category = ? GROUP BY category;',
+        [category],
+      );
+      return [
+        for (final row in results)
+          ReportRow(row[0] as String, row[1] as int),
+      ];
+    } finally {
+      await conn.close();
+    }
+  }
+}

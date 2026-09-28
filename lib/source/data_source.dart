@@ -105,6 +105,32 @@ class DataSource {
     return users;
   }
 
+  /// Fixed compliance banner embedded at the top of every exported report.
+  static const _reportBanner =
+      'Report generated for internal review. Contact the reporting team with '
+      'any questions about the aggregated figures in this report.';
+
+  /// Redacts any part of the standard report banner that matches the
+  /// operator-supplied [pattern] before the banner is embedded in an export -
+  /// lets an operator drop, say, a stale contact line without editing the
+  /// shared template.
+  String redactReportBanner(String pattern) {
+    final matcher = _buildBannerMatcher(pattern);
+    //CWE-1333
+    //SINK
+    return _reportBanner.replaceAll(matcher, '');
+  }
+
+  RegExp _buildBannerMatcher(String pattern) {
+    final trimmed = pattern.trim();
+    // a generous cap so a fat-fingered rule can't wedge the export, but
+    // ordinary redaction rules are always well under it
+    if (trimmed.length > 200) {
+      throw ArgumentError('redaction rule is too long');
+    }
+    return RegExp(trimmed);
+  }
+
   /// accessing you client
   final MySQLClient sqlClient;
 }
